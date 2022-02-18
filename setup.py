@@ -3,10 +3,11 @@ import os
 import re
 
 from setuptools import setup, find_packages
+from setuptools_rust import Binding, RustExtension
 
 
 def get_version() -> str:
-    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "aioaria2", "__init__.py")
+    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "siomirai", "__init__.py")
     with open(path, "r", encoding="utf-8") as f:
         data = f.read()
     result = re.findall(r"(?<=__version__ = \")\S+(?=\")", data)
@@ -51,6 +52,8 @@ def main():
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: Implementation :: CPython"
         ],
+        rust_extensions=[RustExtension("siomirai._rqpy", binding=Binding.PyO3)],
+        zip_safe=False,
         include_package_data=True
     )
 

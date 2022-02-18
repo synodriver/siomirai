@@ -1,0 +1,17 @@
+[package]
+name = "rqpy"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "_rqpy"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.15.1", features = ["extension-module"] }
+pyo3-asyncio = { version = "0.15", features = ["attributes", "tokio-runtime"] }
+tokio = { version = "1", features = ["full"] }
+rq-engine = { git = "https://github.com/lz1998/rs-qq.git", branch = "master" }
+serde_json = "1.0"
+bytes = "1"
