@@ -1,10 +1,10 @@
 from enum import Enum, auto
-from typing import List
+from typing import List, Union
 from io import BytesIO
 
-from .config import Config
-from .exceptions import ProtocolException
-from .events import BaseEvent, RawData
+from siomirai.config import Config
+from siomirai.exceptions import ProtocolException
+from siomirai.events import BaseEvent, RawData
 
 __version__ = "0.0.1"
 
@@ -23,7 +23,7 @@ class Connection:
         self._buffer = bytearray()
         self._current_len = 0  # payload only
 
-    def feed_data(self, data: bytes) -> List[BaseEvent]:
+    def feed_data(self, data: Union[bytes, bytearray]) -> List[BaseEvent]:
         assert data, "No data at all"
         self._buffer.extend(data)
         ret = []

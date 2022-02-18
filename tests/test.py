@@ -5,7 +5,7 @@ print(device.__str__())
 engine = Engine(device, 1)
 
 pkt = engine.build_qrcode_fetch_request_packet()
-# 如果发了很多 req，应该等待相同 seq_id 的 response
+# 如果发了很多 req，应该等待相同 seq_id 的 response 这里可以使用callback
 # 因为这里只发一个 pkt，所以忽略 seq_id
 print(pkt.seq_id)
 print(pkt)
