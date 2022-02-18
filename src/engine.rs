@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use pyo3::prelude::*;
+use pyo3::buffer::PyBuffer;
 use rq_engine::command::wtlogin::{LoginResponse, QRCodeState};
 use rq_engine::Engine;
 use rq_engine::protocol::packet::Packet;

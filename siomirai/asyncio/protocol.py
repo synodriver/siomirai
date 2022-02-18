@@ -2,10 +2,11 @@
 Network Layer, build on top of asyncio
 """
 import asyncio
-from typing import Set
+from typing import Set, Dict
 
 from siomirai import Connection, Config
-from siomirai.events import GroupMessageEvent
+from siomirai.events import TransEmpResponse
+from siomirai.asyncio.utils import timeout
 
 
 class BaseClientProtocol(asyncio.BufferedProtocol):
@@ -25,6 +26,8 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         self._pause_waiter = asyncio.Event()
         self._pause_waiter.set()
         self._close_waiter = asyncio.get_running_loop().create_future()
+        # 还没返回的包 对应seq
+        self._pkt_waiters = {}  # type: Dict[int, asyncio.Future]
         # 还在执行的回调
         self._pending_tasks = set()  # type: Set[asyncio.Task]
 
@@ -41,7 +44,7 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         sizehint may be -1 for any non-zero buffer
         """
         if self._buffer is None or sizehint > len(self._buffer):
-            self._new_buffer(abs(sizehint) + 100)
+            self._new_buffer(abs(sizehint) + 1000)
         elif sizehint > len(self._buffer) - self._pos or len(self._buffer) == self._pos:
             self._pos = 0
         return self._buffer_view[self._pos:]
@@ -53,12 +56,13 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
 
     def _data_received(self, data: bytearray):
         for event in self.connection.feed_data(data):
-            if isinstance(event, GroupMessageEvent):
-                task = asyncio.create_task(self.on_group_message(event))
-                self._pending_tasks.add(task)
-                task.add_done_callback(self._pending_tasks.discard)
-            else:
-                pass  # todo 增加各种event
+            self._pkt_waiters[event.seq_id].set_result(event)
+            # if isinstance(event, GroupMessageEvent):
+            #     task = asyncio.create_task(self.on_group_message(event))
+            #     self._pending_tasks.add(task)
+            #     task.add_done_callback(self._pending_tasks.discard)
+            # else:
+            #     pass  # todo 增加各种event
 
     def connection_made(self, transport) -> None:
         self.transport = transport
@@ -101,10 +105,22 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         data = self.connection.send(data)
         await self.raw_send(data)
 
-# ----------------子类应该实现的回调--------------------
+    async def _fetch_qrcode(self) -> TransEmpResponse:
+        seq_id, data = self.connection.fetch_qrcode()
+        self._pkt_waiters[seq_id] = asyncio.get_running_loop().create_future()
+        await self.raw_send(data)
+        try:
+            return await self._pkt_waiters[seq_id]
+        finally:
+            del self._pkt_waiters[seq_id]
+
+    # -------------公开方法--------------
+    async def fetch_qrcode(self):
+        return await timeout(self.connection.config.timeout)(self._fetch_qrcode)()
+
+    # ----------------子类应该实现的回调--------------------
     async def on_group_message(self, msg):
         pass
 
     async def on_private_message(self, msg):
         pass
-

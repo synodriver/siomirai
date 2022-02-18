@@ -1,4 +1,4 @@
-from rqpy import Device, Engine
+from siomirai._rqpy import Device, Engine
 
 device = Device.random()
 print(device.__str__())
