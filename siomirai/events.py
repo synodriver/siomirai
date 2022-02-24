@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
 
-from siomirai._rqpy import QRCodeState, AccountInfo
+from siomirai import QRCodeState, AccountInfo
 
 @dataclass
 class BaseEvent:

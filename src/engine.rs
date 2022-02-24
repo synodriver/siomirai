@@ -109,7 +109,6 @@ impl PyEngine {
                     ..Default::default()
                 }
             }
-            _ => PyQRCodeState::default()
         }
     }
 
@@ -184,10 +183,15 @@ impl PyEngine {
 pub struct PyQRCodeState {
     #[pyo3(get, set)]
     pub image_fetch: Option<PyQRCodeImageFetch>,
+    #[pyo3(get, set)]
     pub confirmed: Option<PyQRCodeConfirmed>,
+    #[pyo3(get, set)]
     pub waiting_for_scan: Option<bool>,
+    #[pyo3(get, set)]
     pub waiting_for_confirm: Option<bool>,
+    #[pyo3(get, set)]
     pub timeout: Option<bool>,
+    #[pyo3(get, set)]
     pub canceled: Option<bool>,
 }
 

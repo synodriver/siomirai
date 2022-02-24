@@ -1010,18 +1010,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rqpy"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "pyo3",
- "pyo3-asyncio",
- "rq-engine",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1107,6 +1095,18 @@ checksum = "02658e48d89f2bec991f9a78e69cfa4c316f8d6a6c4ec12fae1aeb263d486788"
 dependencies = [
  "digest",
  "rand_core",
+]
+
+[[package]]
+name = "siomirai"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "pyo3",
+ "pyo3-asyncio",
+ "rq-engine",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
