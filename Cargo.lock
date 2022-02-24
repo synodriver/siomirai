@@ -989,7 +989,7 @@ dependencies = [
 [[package]]
 name = "rq-engine"
 version = "0.1.0"
-source = "git+https://github.com/lz1998/rs-qq.git?branch=master#2edf53acaa47631b1861a22b2b3e93dcf4a5b178"
+source = "git+https://github.com/lz1998/rs-qq.git?branch=master#3b328345ff57c01ddb9a2df7f8f649cf8d034588"
 dependencies = [
  "byteorder",
  "bytes",

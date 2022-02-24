@@ -28,7 +28,7 @@ class Connection:
     def feed_data(self, data: Union[bytes, bytearray]) -> List[BaseEvent]:
         assert data, "No data at all"
         self._buffer.extend(data)
-        packets = []
+        packets = []  # type: List[Packet]
         while True:
             if self.state == ParserState.read_length:
                 if len(self._buffer) >= 4:
@@ -58,6 +58,8 @@ class Connection:
                                                message=pkt.message,
                                                encrypt_type=pkt.encrypt_type,
                                                resp=resp))  # todo 更多种类
+            elif pkt.command_name == "wtlogin.login":
+                resp = self._engine.decode_login_response(pkt.body)
         return events
 
     def send(self, data: bytes) -> bytes:
@@ -74,5 +76,12 @@ class Connection:
         data = self._engine.encode_packet(pkt)
         return pkt.seq_id, self.send(data)
 
-    def query_qrcode_result(self):
-        pass
+    def query_qrcode_result(self, sig: bytes) -> Tuple[int, bytes]:
+        pkt = self._engine.build_qrcode_result_query_request_packet(sig)
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def login_qrcode(self, t106: bytes, t16a: bytes, t318: bytes):
+        pkt = self._engine.build_qrcode_login_packet(t106, t16a, t318)
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
