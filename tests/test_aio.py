@@ -15,6 +15,11 @@ async def main():
     event = await protocol.fetch_qrcode()
     with open("qrcode.png", "wb") as f:
         f.write(event.resp.image_fetch.image)
+        sig = event.resp.image_fetch.sig
+    # while True:
+    #     event = await protocol.query_qrcode_result(sig)
+    #     await asyncio.sleep(1)
+    await protocol.login_qrcode()
     pass
 
 asyncio.run(main())

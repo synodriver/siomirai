@@ -1,6 +1,5 @@
 use bytes::Bytes;
 use pyo3::prelude::*;
-use pyo3::buffer::PyBuffer;
 use rq_engine::command::wtlogin::{LoginResponse, QRCodeState};
 use rq_engine::Engine;
 use rq_engine::protocol::packet::Packet;
@@ -114,7 +113,7 @@ impl PyEngine {
         }
     }
 
-    /// build_qrcode_result_query_request_packet(self, sid: bytes) -> Packet
+    /// build_qrcode_result_query_request_packet(self, sig: bytes) -> Packet
     /// --
     ///
     /// build qrcode result query request packet
@@ -233,13 +232,17 @@ pub struct PyLoginResponse {
 #[pyclass(name="LoginSuccess")]
 #[derive(Default, Clone)]
 pub struct PyLoginSuccess {
+    #[pyo3(get, set)]
     pub account_info: PyAccountInfo,
 }
 
 #[pyclass(name="AccountInfo")]
 #[derive(Default, Clone)]
 pub struct PyAccountInfo {
+    #[pyo3(get, set)]
     pub nick: String,
+    #[pyo3(get, set)]
     pub age: u8,
+    #[pyo3(get, set)]
     pub gender: u8,
 }

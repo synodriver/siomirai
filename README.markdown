@@ -7,7 +7,7 @@
 
 - 本机编译
 ```bash
-pip install setuptools-rust, setuptools, wheel
+pip install setuptools-rust setuptools wheel
 
 python setup.py build_ext -i # 就地编译
 # python setup.py sdist bdist_wheel 打包whl

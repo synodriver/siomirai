@@ -98,25 +98,33 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
             self.transport.write(data)
             await self.drain()
 
-    async def send(self, data: bytes):
-        """
-        发送4字节长度（包括自己）再发送payload
-        """
-        data = self.connection.send(data)
-        await self.raw_send(data)
-
-    async def _fetch_qrcode(self) -> TransEmpResponse:
-        seq_id, data = self.connection.fetch_qrcode()
+    async def send_data_with_seq_id(self, seq_id: int, data: bytes):
         self._pkt_waiters[seq_id] = asyncio.get_running_loop().create_future()
         await self.raw_send(data)
         try:
-            return await self._pkt_waiters[seq_id]
+            return await asyncio.wait_for(self._pkt_waiters[seq_id], self.connection.config.timeout)
         finally:
             del self._pkt_waiters[seq_id]
 
+    # async def send(self, data: bytes):
+    #     """
+    #     发送4字节长度（包括自己）再发送payload
+    #     """
+    #     data = self.connection.send(data)
+    #     await self.raw_send(data)
+
     # -------------公开方法--------------
-    async def fetch_qrcode(self):
-        return await timeout(self.connection.config.timeout)(self._fetch_qrcode)()
+    async def fetch_qrcode(self) -> TransEmpResponse:
+        seq_id, data = self.connection.fetch_qrcode()
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def query_qrcode_result(self, sig: bytes):
+        seq_id, data = self.connection.query_qrcode_result(sig)
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def login_qrcode(self):
+        seq_id, data = self.connection.login_qrcode()
+        return await self.send_data_with_seq_id(seq_id, data)
 
     # ----------------子类应该实现的回调--------------------
     async def on_group_message(self, msg):
