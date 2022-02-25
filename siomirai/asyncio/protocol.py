@@ -5,7 +5,8 @@ import asyncio
 from typing import Set, Dict
 
 from siomirai import Connection, Config
-from siomirai.events import TransEmpResponse
+from siomirai.events import BaseEvent, TransEmpResponse
+from siomirai.exceptions import ProtocolException
 from siomirai.asyncio.utils import timeout
 
 
@@ -43,9 +44,9 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         """
         sizehint may be -1 for any non-zero buffer
         """
-        if self._buffer is None or sizehint > len(self._buffer):
+        if self._buffer is None or abs(sizehint) > len(self._buffer):
             self._new_buffer(abs(sizehint) + 1000)
-        elif sizehint > len(self._buffer) - self._pos or len(self._buffer) == self._pos:
+        elif abs(sizehint) > len(self._buffer) - self._pos or len(self._buffer) == self._pos:
             self._pos = 0
         return self._buffer_view[self._pos:]
 
@@ -55,8 +56,19 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         self._pos = new_pos
 
     def _data_received(self, data: bytearray):
-        for event in self.connection.feed_data(data):
-            self._pkt_waiters[event.seq_id].set_result(event)
+        try:
+            for event in self.connection.feed_data(data):
+                try:
+                    if not self._pkt_waiters[event.seq_id].done():
+                        self._pkt_waiters[event.seq_id].set_result(event)
+                except IndexError:
+                    task = asyncio.create_task(self.on_strange_event(event))
+                    self._pending_tasks.add(task)
+                    task.add_done_callback(self._pending_tasks.discard)
+        except ProtocolException:
+            task = asyncio.create_task(self.on_protocol_error())
+            self._pending_tasks.add(task)
+            task.add_done_callback(self._pending_tasks.discard)
             # if isinstance(event, GroupMessageEvent):
             #     task = asyncio.create_task(self.on_group_message(event))
             #     self._pending_tasks.add(task)
@@ -90,6 +102,10 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
     async def wait_closed(self):
         return await self._close_waiter
 
+    @property
+    def closed(self):
+        return self._close_waiter.done()
+
     async def raw_send(self, data: bytes):
         """
         原样发送
@@ -122,11 +138,30 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         seq_id, data = self.connection.query_qrcode_result(sig)
         return await self.send_data_with_seq_id(seq_id, data)
 
-    async def login_qrcode(self):
-        seq_id, data = self.connection.login_qrcode()
+    async def qrcode_login(self, t106: bytes, t16a: bytes, t318: bytes):
+        """
+        见query_qrcode_result的返回值
+        """
+        seq_id, data = self.connection.qrcode_login(t106, t16a, t318)
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def device_lock_login(self):
+        seq_id, data = self.connection.device_lock_login()
         return await self.send_data_with_seq_id(seq_id, data)
 
     # ----------------子类应该实现的回调--------------------
+    async def on_protocol_error(self):
+        """
+        解析协议出错
+        """
+        pass
+
+    async def on_strange_event(self, event: BaseEvent):
+        """
+        来了个莫名其妙的seqid时调用
+        """
+        pass
+
     async def on_group_message(self, msg):
         pass
 

@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("../")
 sys.path.append("../asyncio/")
 
@@ -8,6 +9,7 @@ from typing import cast
 from siomirai.asyncio import BaseClientProtocol
 from siomirai.config import Config, Protocol
 from siomirai import Device
+from siomirai.events import LoginResponse
 
 
 async def main():
@@ -22,7 +24,27 @@ async def main():
         sig = event.resp.image_fetch.sig
     while True:
         event = await protocol.query_qrcode_result(sig)
-        await asyncio.sleep(1)
-    await protocol.login_qrcode()
+        if event.resp.waiting_for_scan:
+            print("waiting_for_scan")
+        if event.resp.waiting_for_confirm:
+            print("waiting_for_confirm")
+        if event.resp.timeout:
+            print("timeout")
+        if event.resp.canceled:
+            print("canceled")
+        if event.resp.confirmed:
+            print("confirmed")
+            break
+        await asyncio.sleep(2)
+    resp: LoginResponse = await protocol.qrcode_login(event.resp.confirmed.tmp_pwd,
+                                                      event.resp.confirmed.tmp_no_pic_sig,
+                                                      event.resp.confirmed.tgt_qr)
+    if resp.device_lock_login:
+        resp = await protocol.device_lock_login()
+
+    print(resp.success.account_info.nick)
+    print(resp.success.account_info.age)
+    print(resp.success.account_info.gender)
+
 
 asyncio.run(main())

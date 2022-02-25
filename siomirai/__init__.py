@@ -20,27 +20,29 @@ class Connection:
 
     def __init__(self, conf: Config):
         self.config = conf
-        self.state = ParserState.read_length
+        self._parser_state = ParserState.read_length
         self._buffer = bytearray()
         self._current_len = 0  # payload only
         self._engine = Engine(conf.device, conf.protocol)
+
+        self.state = {}  # 客户端的状态，群信息 自己信息之类的
 
     def feed_data(self, data: Union[bytes, bytearray]) -> List[BaseEvent]:
         assert data, "No data at all"
         self._buffer.extend(data)
         packets = []  # type: List[Packet]
         while True:
-            if self.state == ParserState.read_length:
+            if self._parser_state == ParserState.read_length:
                 if len(self._buffer) >= 4:
                     self._current_len = int.from_bytes(self._buffer[:4], "big") - 4
-                    self.state = ParserState.read_payload
+                    self._parser_state = ParserState.read_payload
                     self._buffer = self._buffer[4:]
                 else:
                     break
-            if self.state == ParserState.read_payload:
+            if self._parser_state == ParserState.read_payload:
                 if len(self._buffer) >= self._current_len:
                     packets.append(self._engine.decode_packet(bytes(self._buffer[:self._current_len])))
-                    self.state = ParserState.read_length
+                    self._parser_state = ParserState.read_length
                     self._buffer = self._buffer[self._current_len:]
                 else:
                     break
@@ -57,10 +59,14 @@ class Connection:
                                                packet_type=pkt.packet_type,
                                                message=pkt.message,
                                                encrypt_type=pkt.encrypt_type,
-                                               resp=resp))  # todo 更多种类
+                                               resp=resp))
             elif pkt.command_name == "wtlogin.login":
                 resp = self._engine.decode_login_response(pkt.body)
-                events.append(LoginResponse())
+                events.append(LoginResponse(seq_id=pkt.seq_id,
+                                            account_frozen=resp.account_frozen,
+                                            device_lock_login=resp.device_lock_login,
+                                            success=resp.success,
+                                            too_many_sms_request=resp.too_many_sms_request))  # todo 更多种类
         return events
 
     def send(self, data: bytes) -> bytes:
@@ -82,7 +88,12 @@ class Connection:
         data = self._engine.encode_packet(pkt)
         return pkt.seq_id, self.send(data)
 
-    def login_qrcode(self, t106: bytes, t16a: bytes, t318: bytes):
+    def qrcode_login(self, t106: bytes, t16a: bytes, t318: bytes) -> Tuple[int, bytes]:
         pkt = self._engine.build_qrcode_login_packet(t106, t16a, t318)
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def device_lock_login(self) -> Tuple[int, bytes]:
+        pkt = self._engine.build_device_lock_login_packet()
         data = self._engine.encode_packet(pkt)
         return pkt.seq_id, self.send(data)

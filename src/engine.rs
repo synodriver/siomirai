@@ -26,7 +26,7 @@ impl PyEngine {
             _ => Protocol::IPad
         };
         Self {
-            inner: Engine::new(device.inner, get_version(protocol))
+           inner: Engine::new(device.into(), get_version(protocol))
         }
     }
 
@@ -109,7 +109,6 @@ impl PyEngine {
                     ..Default::default()
                 }
             }
-            _ => PyQRCodeState::default()
         }
     }
 
@@ -162,7 +161,7 @@ impl PyEngine {
                 device_lock_login: Some(true),
                 ..Default::default()
             },
-            LoginResponse::AccountFrozen =>PyLoginResponse {
+            LoginResponse::AccountFrozen => PyLoginResponse {
                 account_frozen: Some(true),
                 ..Default::default()
             },

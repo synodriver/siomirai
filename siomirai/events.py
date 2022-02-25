@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
+from typing import Optional
 
-from siomirai._rqpy import QRCodeState, AccountInfo
+from siomirai._rqpy import QRCodeState, LoginSuccess
+
 
 @dataclass
 class BaseEvent:
@@ -17,13 +19,13 @@ class TransEmpResponse(BaseEvent):
     encrypt_type: int
     resp: QRCodeState
 
+
 @dataclass
 class LoginResponse(BaseEvent):
     account_frozen: bool
     device_lock_login: bool
-    account_info: AccountInfo
-    too_many_sms_request:bool
-
+    success: Optional[LoginSuccess]
+    too_many_sms_request: bool
 
 
 @dataclass
