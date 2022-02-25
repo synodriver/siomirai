@@ -20,7 +20,7 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 
 /// A Mirai Protocol Parser.
 #[pymodule]
-fn _rqpy(_py: Python, m: &PyModule) -> PyResult<()> {
+fn siomirai(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_class::<PyDevice>()?;
     m.add_class::<PyPacket>()?;

@@ -26,7 +26,7 @@ impl PyEngine {
             _ => Protocol::IPad
         };
         Self {
-            inner: Engine::new(device.inner, get_version(protocol))
+            inner: Engine::new(device.into(), get_version(protocol))
         }
     }
 
@@ -109,7 +109,6 @@ impl PyEngine {
                     ..Default::default()
                 }
             }
-            _ => PyQRCodeState::default()
         }
     }
 

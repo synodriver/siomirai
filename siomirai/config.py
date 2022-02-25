@@ -3,7 +3,7 @@ from typing import Union
 from dataclasses import dataclass
 from enum import IntEnum
 
-from siomirai._rqpy import Device
+from siomirai import Device
 
 
 class Protocol(IntEnum):
