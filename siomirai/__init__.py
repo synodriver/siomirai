@@ -4,7 +4,7 @@ from io import BytesIO
 
 from siomirai.config import Config
 from siomirai.exceptions import ProtocolException
-from siomirai.events import BaseEvent, TransEmpResponse
+from siomirai.events import BaseEvent, TransEmpResponse, LoginResponse
 from siomirai._rqpy import Device, Engine, Packet
 
 __version__ = "0.0.1"
@@ -60,6 +60,7 @@ class Connection:
                                                resp=resp))  # todo 更多种类
             elif pkt.command_name == "wtlogin.login":
                 resp = self._engine.decode_login_response(pkt.body)
+                events.append(LoginResponse())
         return events
 
     def send(self, data: bytes) -> bytes:

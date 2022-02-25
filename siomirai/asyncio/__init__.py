@@ -1,0 +1,1 @@
+from siomirai.asyncio.protocol import BaseClientProtocol

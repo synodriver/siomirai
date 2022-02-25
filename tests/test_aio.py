@@ -1,7 +1,11 @@
+import sys
+sys.path.append("../")
+sys.path.append("../asyncio/")
+
 import asyncio
 from typing import cast
 
-from siomirai.asyncio.protocol import BaseClientProtocol
+from siomirai.asyncio import BaseClientProtocol
 from siomirai.config import Config, Protocol
 from siomirai import Device
 
@@ -16,10 +20,9 @@ async def main():
     with open("qrcode.png", "wb") as f:
         f.write(event.resp.image_fetch.image)
         sig = event.resp.image_fetch.sig
-    # while True:
-    #     event = await protocol.query_qrcode_result(sig)
-    #     await asyncio.sleep(1)
+    while True:
+        event = await protocol.query_qrcode_result(sig)
+        await asyncio.sleep(1)
     await protocol.login_qrcode()
-    pass
 
 asyncio.run(main())
