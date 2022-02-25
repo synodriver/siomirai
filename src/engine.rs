@@ -26,40 +26,24 @@ impl PyEngine {
             _ => Protocol::IPad
         };
         Self {
-            inner: Engine::new(device.inner, get_version(protocol))
+            inner: Engine::new(device.into(), get_version(protocol))
         }
     }
 
-    /// decode_packet(self, payload: bytes) -> Packet
-    /// --
-    ///
-    /// decode packet
     fn decode_packet(&self, payload: &[u8]) -> PyPacket {
         let pkt = self.inner.transport.decode_packet(payload).unwrap();
         PyPacket::from(pkt)
     }
 
-    /// encode_packet(self, pkt: Packet) -> bytes
-    /// --
-    ///
-    /// encode packet
     fn encode_packet(&self, pkt: PyPacket) -> PBytes {
         let b = self.inner.transport.encode_packet(Packet::from(pkt));
         PBytes(b)
     }
 
-    /// build_qrcode_fetch_request_packet(self) -> Packet
-    /// --
-    ///
-    /// fetch qrcode for login
     fn build_qrcode_fetch_request_packet(&self) -> PyPacket {
         self.inner.build_qrcode_fetch_request_packet().into()
     }
 
-    /// decode_trans_emp_response(self, payload: bytes) -> QRCodeState
-    /// --
-    ///
-    /// fetch qrcode for login
     fn decode_trans_emp_response(&mut self, payload: &[u8]) -> PyQRCodeState {
         let resp = self.inner.decode_trans_emp_response(Bytes::from(payload.to_vec())).unwrap();
         match resp {
@@ -109,38 +93,21 @@ impl PyEngine {
                     ..Default::default()
                 }
             }
-            _ => PyQRCodeState::default()
         }
     }
 
-    /// build_qrcode_result_query_request_packet(self, sig: bytes) -> Packet
-    /// --
-    ///
-    /// build qrcode result query request packet
     fn build_qrcode_result_query_request_packet(&self, sig: &[u8]) -> PyPacket {
         self.inner.build_qrcode_result_query_request_packet(sig).into()
     }
 
-    /// build_qrcode_login_packet(self, t106: bytes, t16a: bytes, t318: bytes) -> Packet
-    /// --
-    ///
-    /// build qrcode login packet
     fn build_qrcode_login_packet(&self, t106: &[u8], t16a: &[u8], t318: &[u8]) -> PyPacket {
         self.inner.build_qrcode_login_packet(t106, t16a, t318).into()
     }
 
-    /// build_device_lock_login_packet(self) -> Packet
-    /// --
-    ///
-    /// build device lock login packet
     fn build_device_lock_login_packet(&self) -> PyPacket {
         self.inner.build_device_lock_login_packet().into()
     }
 
-    /// decode_login_response(self, payload: bytes) -> LoginResponse
-    /// --
-    ///
-    /// decode login response
     fn decode_login_response(&mut self, payload: &[u8]) -> PyLoginResponse {
         let resp = self.inner.decode_login_response(Bytes::from(payload.to_vec())).unwrap();
         self.inner.process_login_response(resp.clone());
