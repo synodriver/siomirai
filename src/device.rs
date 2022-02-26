@@ -1,5 +1,7 @@
+use bytes::Bytes;
 use pyo3::prelude::*;
 use rq_engine::protocol::device::{Device, OSVersion};
+
 use crate::pbytes::PBytes;
 
 /// The Device
@@ -45,7 +47,7 @@ pub struct PyDevice {
     #[pyo3(get, set)]
     pub wifi_ssid: String,
     #[pyo3(get, set)]
-    pub imsi_md5: Vec<u8>,
+    pub imsi_md5: PBytes,
     #[pyo3(get, set)]
     pub android_id: String,
     #[pyo3(get, set)]
@@ -78,7 +80,7 @@ impl From<Device> for PyDevice {
             ip_address: d.ip_address,
             wifi_bssid: d.wifi_bssid,
             wifi_ssid: d.wifi_ssid,
-            imsi_md5: d.imsi_md5,
+            imsi_md5: PBytes(Bytes::from(d.imsi_md5)),
             android_id: d.android_id,
             apn: d.apn,
             vendor_name: d.vendor_name,
@@ -109,7 +111,7 @@ impl From<PyDevice> for Device {
             ip_address: d.ip_address,
             wifi_bssid: d.wifi_bssid,
             wifi_ssid: d.wifi_ssid,
-            imsi_md5: d.imsi_md5,
+            imsi_md5: d.imsi_md5.0.to_vec(),
             android_id: d.android_id,
             apn: d.apn,
             vendor_name: d.vendor_name,
@@ -140,7 +142,7 @@ impl From<&PyDevice> for Device {
             ip_address: d.ip_address.clone(),
             wifi_bssid: d.wifi_bssid.clone(),
             wifi_ssid: d.wifi_ssid.clone(),
-            imsi_md5: d.imsi_md5.clone(),
+            imsi_md5: d.imsi_md5.0.to_vec(),
             android_id: d.android_id.clone(),
             apn: d.apn.clone(),
             vendor_name: d.vendor_name.clone(),
@@ -234,7 +236,7 @@ impl PyDevice {
             ip_address: ip_address.to_vec(),
             wifi_bssid,
             wifi_ssid,
-            imsi_md5: imsi_md5.to_vec(),
+            imsi_md5: imsi_md5.into(),
             android_id,
             apn,
             vendor_name,
@@ -261,5 +263,11 @@ impl PyDevice {
 
     fn __str__(&self) -> PyResult<String> {
         Ok(serde_json::to_string(&Device::from(self.clone())).unwrap())
+    }
+
+    #[staticmethod]
+    fn from_str(s: &str) -> PyResult<PyDevice> {
+        let device: Device = serde_json::from_str(s).unwrap();
+        Ok(device.into())
     }
 }

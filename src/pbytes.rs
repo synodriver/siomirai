@@ -17,3 +17,9 @@ impl IntoPy<PyObject> for PBytes {
         PyBytes::new(py, &self.0).to_object(py)
     }
 }
+
+impl From<&[u8]> for PBytes {
+    fn from(data: &[u8]) -> Self {
+        return Self(Bytes::copy_from_slice(data))
+    }
+}
