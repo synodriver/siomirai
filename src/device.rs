@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use pyo3::prelude::*;
+use pyo3::exceptions;
 use rq_engine::protocol::device::{Device, OSVersion};
 
 use crate::pbytes::PBytes;
@@ -267,7 +268,10 @@ impl PyDevice {
 
     #[staticmethod]
     fn from_str(s: &str) -> PyResult<PyDevice> {
-        let device: Device = serde_json::from_str(s).unwrap();
-        Ok(device.into())
+        match serde_json::from_str::<Device>(s)
+        {
+            Ok(device) => Ok(device.into()),
+            Err(e) => Err(exceptions::PyValueError::new_err(e.to_string())),
+        }
     }
 }
