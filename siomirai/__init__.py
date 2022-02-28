@@ -4,7 +4,8 @@ from io import BytesIO
 
 from siomirai.config import Config
 from siomirai.exceptions import ProtocolException
-from siomirai.events import BaseEvent, TransEmpResponse, LoginResponse
+from siomirai.events import PacketReceived, TransEmpResponse, LoginResponse, UpdateSignatureResponse, \
+    ClientRegisterResponse, HeartBeatEvent
 from siomirai._rqpy import Device, Engine, Packet
 
 __version__ = "0.0.1"
@@ -27,7 +28,7 @@ class Connection:
 
         self.state = {}  # 客户端的状态，群信息 自己信息之类的
 
-    def feed_data(self, data: Union[bytes, bytearray]) -> List[BaseEvent]:
+    def feed_data(self, data: Union[bytes, bytearray]) -> List[PacketReceived]:
         assert data, "No data at all"
         self._buffer.extend(data)
         packets = []  # type: List[Packet]
@@ -49,7 +50,7 @@ class Connection:
             if not self._buffer:
                 break
         # docede packet
-        events = []
+        events = []  # type: List[PacketReceived]
         for pkt in packets:
             if pkt.command_name == "wtlogin.trans_emp":
                 resp = self._engine.decode_trans_emp_response(pkt.body)
@@ -59,14 +60,64 @@ class Connection:
                                                packet_type=pkt.packet_type,
                                                message=pkt.message,
                                                encrypt_type=pkt.encrypt_type,
+
                                                resp=resp))
             elif pkt.command_name == "wtlogin.login":
                 resp = self._engine.decode_login_response(pkt.body)
                 events.append(LoginResponse(seq_id=pkt.seq_id,
+                                            command_name=pkt.command_name,
+                                            uin=pkt.uin,
+                                            packet_type=pkt.packet_type,
+                                            message=pkt.message,
+                                            encrypt_type=pkt.encrypt_type,
+
                                             account_frozen=resp.account_frozen,
                                             device_lock_login=resp.device_lock_login,
+                                            device_locked=resp.device_locked,
+                                            need_captcha=resp.need_captcha,
                                             success=resp.success,
-                                            too_many_sms_request=resp.too_many_sms_request))  # todo 更多种类
+                                            too_many_sms_request=resp.too_many_sms_request,
+                                            unknown_status=resp.unknown_status))
+            elif pkt.command_name == "Signature.auth":
+                e = UpdateSignatureResponse(seq_id=pkt.seq_id,
+                                            command_name=pkt.command_name,
+                                            uin=pkt.uin,
+                                            packet_type=pkt.packet_type,
+                                            message=pkt.message,
+                                            encrypt_type=pkt.encrypt_type)
+                e.body = pkt.body
+                events.append(e)
+
+            elif pkt.command_name == "StatSvc.register":
+                e = ClientRegisterResponse(seq_id=pkt.seq_id,
+                                           command_name=pkt.command_name,
+                                           uin=pkt.uin,
+                                           packet_type=pkt.packet_type,
+                                           message=pkt.message,
+                                           encrypt_type=pkt.encrypt_type)
+                e.body = pkt.body
+                events.append(e)
+
+            elif pkt.command_name == "Heartbeat.Alive":
+                e = HeartBeatEvent(seq_id=pkt.seq_id,
+                                   command_name=pkt.command_name,
+                                   uin=pkt.uin,
+                                   packet_type=pkt.packet_type,
+                                   message=pkt.message,
+                                   encrypt_type=pkt.encrypt_type)
+                e.body = pkt.body
+                events.append(e)
+
+            else:
+                e = PacketReceived(seq_id=pkt.seq_id,
+                                   command_name=pkt.command_name,
+                                   uin=pkt.uin,
+                                   packet_type=pkt.packet_type,
+                                   message=pkt.message,
+                                   encrypt_type=pkt.encrypt_type)  # todo 更多种类 这个兜底的
+                e.body = pkt.body
+                events.append(e)
+
         return events
 
     def send(self, data: bytes) -> bytes:
@@ -95,5 +146,48 @@ class Connection:
 
     def device_lock_login(self) -> Tuple[int, bytes]:
         pkt = self._engine.build_device_lock_login_packet()
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def login(self, password_md5: bytes) -> Tuple[int, bytes]:
+        pkt = self._engine.build_login_packet(password_md5)
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def client_register(self) -> Tuple[int, bytes]:
+        pkt = self._engine.build_client_register_packet()
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def heartbeat(self) -> Tuple[int, bytes]:
+        pkt = self._engine.build_heartbeat_packet()
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def sms_code_submit(self, code: str) -> Tuple[int, bytes]:
+        pkt = self._engine.build_sms_code_submit_packet(code)
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def sms_request(self) -> Tuple[int, bytes]:
+        pkt = self._engine.build_sms_request_packet()
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def ticket_submit(self, ticket: str) -> Tuple[int, bytes]:
+        pkt = self._engine.build_ticket_submit_packet(ticket)
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def update_signature(self, signature: str) -> Tuple[int, bytes]:
+        """
+        修改自己的签名
+        """
+        pkt = self._engine.build_update_signature_packet(signature)
+        data = self._engine.encode_packet(pkt)
+        return pkt.seq_id, self.send(data)
+
+    def uni_packet(self, command_name: str, body: bytes) -> Tuple[int, bytes]:
+        pkt = self._engine.uni_packet(command_name, body)
         data = self._engine.encode_packet(pkt)
         return pkt.seq_id, self.send(data)

@@ -24,8 +24,8 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         self._pos = 0
 
         self._lock = asyncio.Lock()
-        self._pause_waiter = asyncio.Event()
-        self._pause_waiter.set()
+        self._drain_waiter = asyncio.Event()
+        self._drain_waiter.set()   # 一开始必须设置成可以发送
         self._close_waiter = asyncio.get_running_loop().create_future()
         # 还没返回的包 对应seq
         self._pkt_waiters = {}  # type: Dict[int, asyncio.Future]
@@ -87,17 +87,17 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
             self._close_waiter.set_result(None)
 
     def pause_writing(self) -> None:
-        self._pause_waiter.clear()
+        self._drain_waiter.clear()
 
     def resume_writing(self) -> None:
-        self._pause_waiter.set()
+        self._drain_waiter.set()
 
     async def drain(self):
-        await self._pause_waiter.wait()
+        await self._drain_waiter.wait()
 
     async def close(self):
         self.transport.close()
-        await self.wait_closed()
+        return await self.wait_closed()
 
     async def wait_closed(self):
         return await self._close_waiter
@@ -115,6 +115,7 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
             await self.drain()
 
     async def send_data_with_seq_id(self, seq_id: int, data: bytes):
+        assert seq_id not in self._pkt_waiters
         self._pkt_waiters[seq_id] = asyncio.get_running_loop().create_future()
         await self.raw_send(data)
         try:
@@ -138,6 +139,10 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
         seq_id, data = self.connection.query_qrcode_result(sig)
         return await self.send_data_with_seq_id(seq_id, data)
 
+    async def login(self):
+        seq_id, data = self.connection.login()
+        return await self.send_data_with_seq_id(seq_id, data)
+
     async def qrcode_login(self, t106: bytes, t16a: bytes, t318: bytes):
         """
         见query_qrcode_result的返回值
@@ -147,6 +152,34 @@ class BaseClientProtocol(asyncio.BufferedProtocol):
 
     async def device_lock_login(self):
         seq_id, data = self.connection.device_lock_login()
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def client_register(self):
+        seq_id, data = self.connection.client_register()
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def heartbeat(self):
+        seq_id, data = self.connection.heartbeat()
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def sms_code_submit(self, code: str):
+        seq_id, data = self.connection.sms_code_submit(code)
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def sms_request(self):
+        seq_id, data = self.connection.sms_request()
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def ticket_submit(self, ticket: str):
+        seq_id, data = self.connection.ticket_submit(ticket)
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def update_signature(self, signature: str):
+        seq_id, data = self.connection.update_signature(signature)
+        return await self.send_data_with_seq_id(seq_id, data)
+
+    async def uni_packet(self, command_name: str, body: bytes):
+        seq_id, data = self.connection.uni_packet(command_name, body)
         return await self.send_data_with_seq_id(seq_id, data)
 
     # ----------------子类应该实现的回调--------------------

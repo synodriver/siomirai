@@ -15,3 +15,13 @@ tokio = { version = "1", features = ["full"] }
 rq-engine = { git = "https://github.com/lz1998/rs-qq.git", branch = "master" }
 serde_json = "1.0"
 bytes = "1"
+
+[profile.dev]
+panic = "unwind"
+
+[profile.release]
+strip = "debuginfo"
+debug = false
+lto = "fat"
+panic = "abort"
+incremental = false

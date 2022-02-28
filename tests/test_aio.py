@@ -45,6 +45,10 @@ async def main():
     print(resp.success.account_info.nick)
     print(resp.success.account_info.age)
     print(resp.success.account_info.gender)
+    ev = await protocol.client_register()
+    print(ev)
+    ev = await protocol.update_signature("test signature")
+    print(ev)
 
 
 asyncio.run(main())
