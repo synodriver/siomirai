@@ -70,8 +70,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 data = s.recv(length - 4)
                 resp_pkt = engine.decode_packet(data)
                 resp = engine.decode_login_response(resp_pkt.body)
-                pass
-
             print(resp.success.account_info.nick)
             print(resp.success.account_info.age)
             print(resp.success.account_info.gender)

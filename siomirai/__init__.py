@@ -42,19 +42,17 @@ class Connection:
         packets = []  # type: List[Packet]
         while True:
             if self.state == ParserState.read_length:
-                if len(self._buffer) >= 4:
-                    self._current_len = int.from_bytes(self._buffer[:4], "big") - 4
-                    self.state = ParserState.read_payload
-                    self._buffer = self._buffer[4:]
-                else:
+                if len(self._buffer) < 4:
                     break
+                self._current_len = int.from_bytes(self._buffer[:4], "big") - 4
+                self.state = ParserState.read_payload
+                self._buffer = self._buffer[4:]
             if self.state == ParserState.read_payload:
-                if len(self._buffer) >= self._current_len:
-                    packets.append(self._engine.decode_packet(bytes(self._buffer[:self._current_len])))
-                    self.state = ParserState.read_length
-                    self._buffer = self._buffer[self._current_len:]
-                else:
+                if len(self._buffer) < self._current_len:
                     break
+                packets.append(self._engine.decode_packet(bytes(self._buffer[:self._current_len])))
+                self.state = ParserState.read_length
+                self._buffer = self._buffer[self._current_len:]
             if not self._buffer:
                 break
         # docede packet
